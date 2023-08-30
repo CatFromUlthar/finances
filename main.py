@@ -9,7 +9,7 @@ class BudgetElement:
     def create_spreadsheet(cls):
         cls.database_int = DataBaseInteractor('financial_spreadsheet.db')
         cls.database_int.create_table('fin_balance', description='TEXT', amount='INTEGER',
-                                                 positivity='TEXT', date='TEXT')
+                                      positivity='TEXT', date='TEXT')
 
     def __init__(self, description: str, amount: int | float, positivity: str, date: tuple = None):
 
@@ -37,22 +37,48 @@ class BudgetElement:
         return f'BudgetElement(amount={self.amount}, positivity={self.positivity})'
 
     @classmethod
-    def calculate_budget(cls):
+    def _calculate_budget_base(cls, date_from: datetime.date, date_to: datetime.date):
 
         budget = 0
 
         for i in cls.obj_list:
-            if i.positivity == '+':
+            if i.positivity == '+' and date_from <= i.date <= date_to:
                 budget += i.amount
-            else:
+            elif i.positivity == '-' and date_from <= i.date <= date_to:
                 budget -= i.amount
 
         return budget
+
+    @classmethod
+    def calculate_budget(cls, period_from: tuple = None, period_to: tuple = None):
+
+        if period_from is not None and period_to is not None:
+
+            date_from = datetime.date(period_from[2], period_from[1], period_from[0])
+            date_to = datetime.date(period_to[2], period_to[1], period_to[0])
+
+        elif period_from is not None:
+
+            date_from = datetime.date(period_from[2], period_from[1], period_from[0])
+            date_to = datetime.date.today()
+
+        elif period_to is not None:
+
+            date_from = datetime.date(1, 1, 1)
+            date_to = datetime.date(period_to[2], period_to[1], period_to[0])
+
+        else:
+
+            date_from = datetime.date(1, 1, 1)
+            date_to = datetime.date.today()
+
+        return cls._calculate_budget_base(date_from, date_to)
 
 
 if __name__ == '__main__':
     BudgetElement.create_spreadsheet()
     water_bill = BudgetElement('water bill for last month', 500, '-', (1, 9, 2023))
     paycheck = BudgetElement('my work paycheck', 1000, '+', (2, 9, 2023))
-    food = BudgetElement('food and groceries', 150, '-')
-    BudgetElement.calculate_budget()
+    food = BudgetElement('food and groceries', 150, '-', (20, 9, 2023))
+    fin_count = BudgetElement.calculate_budget(period_to=(10, 9, 2023))
+    print(fin_count)
